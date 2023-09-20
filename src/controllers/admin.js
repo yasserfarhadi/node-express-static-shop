@@ -9,20 +9,26 @@ module.exports.getAddProduct = (_req, res, _next) => {
 };
 
 module.exports.getProducts = (req, res, next) => {
-  Product.fetchAll((products) => {
-    res.render('admin/products', {
-      pageTitle: 'Admin Products',
-      path: '/admin/products',
-      prods: products,
-    });
-  });
+  Product.fetchAll()
+    .then(([rows, metaInfo]) => {
+      res.render('admin/products', {
+        pageTitle: 'Admin Products',
+        path: '/admin/products',
+        prods: rows,
+      });
+    })
+    .catch(console.log);
 };
 
 module.exports.postAddProduct = (req, res, _next) => {
   const { title, imageUrl, description, price } = req.body;
   const product = new Product(title, imageUrl, description, price, null);
-  product.save();
-  res.redirect('/');
+  product
+    .save()
+    .then(() => {
+      res.redirect('/');
+    })
+    .catch(console.log);
 };
 
 module.exports.getEditProduct = (req, res, next) => {
@@ -58,7 +64,6 @@ module.exports.postEditProduct = (req, res, next) => {
 };
 
 module.exports.postDeleteProduct = (req, res, next) => {
-  console.log('hit');
   const id = req.body.productId;
   Product.deleteById(id, (id) => {
     console.log(`product with id: ${id} deleted!`);
