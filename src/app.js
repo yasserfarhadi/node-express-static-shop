@@ -1,17 +1,12 @@
 const path = require('node:path');
 const express = require('express');
 const bodyParser = require('body-parser');
-const sequelize = require('./utils/database');
-const Product = require('./models/product');
-const User = require('./models/user');
-const Cart = require('./models/cart');
-const CartItem = require('./models/cart-item');
-const Order = require('./models/order');
-const OrderItem = require('./models/order-item');
+const { mongoConnect } = require('./utils/database');
 
 const adminRoutes = require('./routes/admin');
 const shopRoutes = require('./routes/shop');
 const { get404 } = require('./controllers/error');
+const User = require('./models/user');
 
 const app = express();
 
@@ -22,52 +17,27 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(express.static(path.join(process.cwd(), 'public')));
 
 app.use((req, res, next) => {
-  User.findByPk(1)
+  User.findById('650dc2b296050e14e2c54228')
     .then((user) => {
-      req.user = user;
+      req.user = new User(user.name, user.email, user.cart, user._id);
       next();
     })
-    .catch(console.log);
+    .catch();
 });
 
 app.use(shopRoutes);
 app.use('/admin', adminRoutes);
 app.use(get404);
 
-Product.belongsTo(User, { constraints: true, onDelete: 'CASCADE' });
-User.hasMany(Product);
-User.hasOne(Cart);
-Cart.belongsTo(User);
-Cart.belongsToMany(Product, { through: CartItem });
-Product.belongsToMany(Cart, { through: CartItem });
-Order.belongsTo(User);
-User.hasMany(Order);
-Order.belongsToMany(Product, { through: OrderItem });
-
-sequelize
-  // .sync({ force: true })
-  .sync()
-  .then((result) => {
-    return User.findByPk(1);
-  })
-  .then((user) => {
-    if (!user) {
-      return User.create({
-        name: 'bbk',
-        email: 'bbk@bbk.com',
-      });
-    }
-    return user;
-  })
-  .then((user) => {
-    user.getCart().then((cart) => {
-      if (!cart) {
-        return user.createCart();
+mongoConnect().then(() => {
+  User.findById('650dc2b296050e14e2c54228')
+    .then((user) => {
+      if (!user) {
+        const user = new User('bbk', 'bbk@bbk.com');
+        return user.save();
       }
-      return cart;
+    })
+    .then((user) => {
+      app.listen(9000);
     });
-  })
-  .then((cart) => {
-    app.listen(9000);
-  })
-  .catch(console.log);
+});

@@ -21,7 +21,6 @@ function requestHandler(request, response) {
   if (url === '/message' && request.method === 'POST') {
     let body = [];
     request.on('data', function onData(chunk) {
-      console.log(chunk);
       body.push(chunk);
     });
 
