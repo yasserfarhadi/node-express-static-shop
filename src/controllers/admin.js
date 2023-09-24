@@ -1,11 +1,12 @@
 const { ObjectId } = require('mongodb');
 const Product = require('../models/product');
 
-module.exports.getAddProduct = (_req, res, _next) => {
+module.exports.getAddProduct = (req, res, _next) => {
   res.render('admin/edit-product', {
     pageTitle: 'Add Product',
     path: '/admin/add-product',
     editing: false,
+    isAuthenticated: req.session.isLoggedIn,
   });
 };
 
@@ -37,6 +38,7 @@ module.exports.getEditProduct = (req, res, next) => {
         path: '/admin/edit-product',
         editing: editMode,
         product: product,
+        isAuthenticated: req.isLoggedIn,
       });
     })
     .catch(console.log);
@@ -77,6 +79,7 @@ module.exports.getProducts = (req, res, next) => {
         pageTitle: 'Admin Products',
         path: '/admin/products',
         prods: products,
+        isAuthenticated: req.session.isLoggedIn,
       });
     })
     .catch(console.log);
