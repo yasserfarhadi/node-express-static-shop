@@ -54,22 +54,6 @@ app.use(get404);
 mongoose
   .connect(MONGODB_URI)
   .then((result) => {
-    User.findOne()
-      .then((user) => {
-        if (!user) {
-          const user = new User({
-            name: 'bbk',
-            email: 'bbk@bbk.com',
-            cart: { items: [] },
-          });
-          user.save();
-        }
-        return user;
-      })
-      .then(() => {
-        console.log('connected to db');
-        app.listen(9000);
-        console.log('server started at port 9000');
-      });
+    app.listen(9000);
   })
   .catch(console.log);

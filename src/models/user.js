@@ -2,11 +2,11 @@ const { Schema, model } = require('mongoose');
 const Order = require('../models/order');
 
 const UserSchema = Schema({
-  name: {
+  email: {
     type: String,
     required: true,
   },
-  email: {
+  password: {
     type: String,
     required: true,
   },
