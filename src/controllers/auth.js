@@ -1,5 +1,16 @@
+const crypto = require('node:crypto');
 const bcrypt = require('bcryptjs');
 const User = require('../models/user');
+const nodemailer = require('nodemailer');
+
+const transport = nodemailer.createTransport({
+  host: 'sandbox.smtp.mailtrap.io',
+  port: 2525,
+  auth: {
+    user: 'f656851b68050c',
+    pass: 'c37004d455c33b',
+  },
+});
 
 module.exports.getLogin = (req, res, next) => {
   // const isLoggedIn =
@@ -80,8 +91,99 @@ module.exports.postSignUp = (req, res, next) => {
         })
         .then((result) => {
           res.redirect('/login');
-        });
+          return transport.sendMail({
+            from: 'bbk@bbk.com',
+            to: email,
+            subject: 'Signup Succeeded!',
+            test: 'Successful Signup',
+            html: '<h1>You Successfuly Signed Up!</h1>',
+          });
+        })
+        .catch(console.log);
     })
 
+    .catch(console.log);
+};
+
+module.exports.getReset = (req, res, next) => {
+  const errorMessage = req.flash('error');
+  res.render('auth/reset', {
+    path: '/reset',
+    pageTitle: 'Reset Password',
+    errorMessage: errorMessage.length > 0 ? errorMessage[0] : null,
+  });
+};
+
+module.exports.postReset = (req, res, next) => {
+  const email = req.body.email;
+  crypto.randomBytes(32, (err, buffer) => {
+    if (err) {
+      console.log(err);
+      return res.redirect('/reset');
+    }
+    const token = buffer.toString('hex');
+    return User.findOne({ email })
+      .then((user) => {
+        if (!user) {
+          req.flash('error', 'No account with that email found!');
+          return res.redirect('/reset');
+        }
+        user.resetToken = token;
+        user.resetTokenExpiration = Date.now() + 3600000;
+        return user.save();
+      })
+      .then((result) => {
+        res.redirect('/');
+        return transport.sendMail({
+          to: email,
+          from: 'bbk@bbk.com',
+          subject: 'Password Reset',
+          html: `
+          <p>You requested  password reset</p>
+          <p>Click this <a href="http://localhost:9000/reset/${token}">LINK</a> to set a new password</p>
+        `,
+        });
+      })
+      .catch(console.log);
+  });
+};
+
+module.exports.getNewPassword = (req, res, next) => {
+  const token = req.params.token;
+  User.findOne({ resetToken: token, resetTokenExpiration: { $gt: Date.now() } })
+    .then((user) => {
+      const errorMessage = req.flash('error');
+      res.render('auth/new-password', {
+        path: '/new-password',
+        pageTitle: 'New Password',
+        errorMessage: errorMessage.length > 0 ? errorMessage[0] : null,
+        userId: user._id.toString(),
+        passwordToken: token,
+      });
+    })
+    .catch(console.log);
+};
+
+module.exports.postNewPassword = (req, res, next) => {
+  const { password, userId, passwordToken } = req.body;
+  let resetUser;
+  User.findOne({
+    resetToken: passwordToken,
+    resetTokenExpiration: { $gt: Date.now() },
+    _id: userId,
+  })
+    .then((user) => {
+      resetUser = user;
+      return bcrypt.hash(password, 12);
+    })
+    .then((hashedPassword) => {
+      resetUser.password = hashedPassword;
+      resetUser.resetToken = undefined;
+      resetUser.resetTokenExpiration = undefined;
+      return resetUser.save();
+    })
+    .then((result) => {
+      res.redirect('/login');
+    })
     .catch(console.log);
 };
