@@ -1,16 +1,31 @@
-const { ObjectId } = require('mongodb');
 const Product = require('../models/product');
+const { validationResult } = require('express-validator');
 
 module.exports.getAddProduct = (req, res, _next) => {
   res.render('admin/edit-product', {
     pageTitle: 'Add Product',
     path: '/admin/add-product',
     editing: false,
+    hasError: false,
+    errorMessage: null,
+    validationErrors: [],
   });
 };
 
 module.exports.postAddProduct = (req, res, _next) => {
   const { title, imageUrl, description, price } = req.body;
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(422).render('admin/edit-product', {
+      pageTitle: 'Add Product',
+      path: '/admin/add-product',
+      editing: false,
+      product: { title, imageUrl, description, price },
+      hasError: true,
+      errorMessage: errors.array()[0].msg,
+      validationErrors: errors.array(),
+    });
+  }
   const userId = req.user._id;
   const product = new Product({ title, price, description, imageUrl, userId });
   product
@@ -26,6 +41,7 @@ module.exports.getEditProduct = (req, res, next) => {
   if (!editMode) {
     return res.redirect('/');
   }
+
   const id = req.params.productId;
   Product.findById(id)
     .then((product) => {
@@ -37,6 +53,8 @@ module.exports.getEditProduct = (req, res, next) => {
         path: '/admin/edit-product',
         editing: editMode,
         product: product,
+        errorMessage: null,
+        validationErrors: [],
       });
     })
     .catch(console.log);
@@ -48,6 +66,18 @@ module.exports.postEditProduct = (req, res, next) => {
     .then((product) => {
       if (product.userId.toString() !== req.user._id.toString()) {
         return res.redirect('/');
+      }
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(422).render('admin/edit-product', {
+          pageTitle: 'Edit Product',
+          path: '/admin/add-product',
+          editing: true,
+          product: { _id: productId, title, price, description, imageUrl },
+          hasError: true,
+          errorMessage: errors.array()[0].msg,
+          validationErrors: errors.array(),
+        });
       }
       product.title = title;
       product.price = price;
