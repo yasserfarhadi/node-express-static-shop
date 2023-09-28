@@ -47,35 +47,51 @@ module.exports.postLogin = (req, res, next) => {
     });
   }
 
-  User.findOne({ email })
+  User.findOne({ email: email })
     .then((user) => {
       if (!user) {
-        return Promise.reject('Invalid email or password!');
+        return res.status(422).render('auth/login', {
+          path: '/login',
+          pageTitle: 'Login',
+          errorMessage: 'Invalid email or password.',
+          oldInput: {
+            email: email,
+            password: password,
+          },
+          validationErrors: [],
+        });
       }
-      return bcrypt.compare(password, user.password).then((doMatch) => {
-        if (doMatch) {
-          req.session.isLoggedIn = true;
-          req.session.user = user;
-          return req.session.save((err) => {
-            console.log(err);
-            res.redirect('/');
+      bcrypt
+        .compare(password, user.password)
+        .then((doMatch) => {
+          if (doMatch) {
+            req.session.isLoggedIn = true;
+            req.session.user = user;
+            return req.session.save((err) => {
+              console.log(err);
+              res.redirect('/');
+            });
+          }
+          return res.status(422).render('auth/login', {
+            path: '/login',
+            pageTitle: 'Login',
+            errorMessage: 'Invalid email or password.',
+            oldInput: {
+              email: email,
+              password: password,
+            },
+            validationErrors: [],
           });
-        } else {
-          return Promise.reject('Invalid email or password!');
-        }
-      });
+        })
+        .catch((err) => {
+          console.log(err);
+          res.redirect('/login');
+        });
     })
     .catch((err) => {
-      return res.status(422).render('auth/login', {
-        path: '/login',
-        pageTitle: 'Login',
-        errorMessage: err,
-        oldInput: {
-          email,
-          password,
-        },
-        validationErrors: [{ path: 'email' }, { path: 'password' }],
-      });
+      const error = new Error(err);
+      error.httpStatusCode = 500;
+      next(error);
     });
 };
 
@@ -137,7 +153,11 @@ module.exports.postSignUp = (req, res, next) => {
         html: '<h1>You Successfuly Signed Up!</h1>',
       });
     })
-    .catch(console.log);
+    .catch((err) => {
+      const error = new Error(err);
+      error.httpStatusCode = 500;
+      next(error);
+    });
 };
 
 module.exports.getReset = (req, res, next) => {
@@ -179,7 +199,11 @@ module.exports.postReset = (req, res, next) => {
         `,
         });
       })
-      .catch(console.log);
+      .catch((err) => {
+        const error = new Error(err);
+        error.httpStatusCode = 500;
+        next(error);
+      });
   });
 };
 
@@ -196,7 +220,11 @@ module.exports.getNewPassword = (req, res, next) => {
         passwordToken: token,
       });
     })
-    .catch(console.log);
+    .catch((err) => {
+      const error = new Error(err);
+      error.httpStatusCode = 500;
+      next(error);
+    });
 };
 
 module.exports.postNewPassword = (req, res, next) => {
@@ -220,5 +248,9 @@ module.exports.postNewPassword = (req, res, next) => {
     .then((result) => {
       res.redirect('/login');
     })
-    .catch(console.log);
+    .catch((err) => {
+      const error = new Error(err);
+      error.httpStatusCode = 500;
+      next(error);
+    });
 };
