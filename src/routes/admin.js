@@ -21,7 +21,6 @@ router.post(
       .isString()
       .trim()
       .isLength({ min: 3, max: 50 }),
-    body('imageUrl', 'image url is not valid!').isURL(),
     body('price', 'price number you entered is not valid').isFloat(),
     body(
       'description',
@@ -43,7 +42,6 @@ router.post(
       .isString()
       .trim()
       .isLength({ min: 3, max: 50 }),
-    body('imageUrl', 'image url is not valid!').isURL(),
     body('price', 'price number you entered is not valid').isFloat(),
     body(
       'description',
