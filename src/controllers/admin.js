@@ -145,8 +145,8 @@ module.exports.postEditProduct = (req, res, next) => {
     });
 };
 
-module.exports.postDeleteProduct = (req, res, next) => {
-  const id = req.body.productId;
+module.exports.deleteProduct = (req, res, next) => {
+  const id = req.params.productId;
   Product.findById(id)
     .then((product) => {
       if (!product) {
@@ -156,19 +156,17 @@ module.exports.postDeleteProduct = (req, res, next) => {
       return Product.deleteOne({ _id: id, userId: req.user._id });
     })
     .then((result) => {
-      res.redirect('/admin/products');
+      res.status(200).json({
+        message: 'Success~',
+      });
     })
     .catch((err) => {
-      const error = new Error(err);
-      error.httpStatusCode = 500;
-      next(error);
+      res.status(500).json({ message: 'Deleting product failed!' });
     });
 };
 
 module.exports.getProducts = (req, res, next) => {
   Product.find({ userId: req.user._id })
-    // .select("title price -_id")
-    // .populate('userId', "name" )
     .then((products) => {
       res.render('admin/products', {
         pageTitle: 'Admin Products',

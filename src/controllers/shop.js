@@ -4,14 +4,30 @@ const Product = require('../models/product');
 const Order = require('../models/order');
 const PDFDocument = require('pdfkit');
 
+const ITEMS_PER_PAGE = 1;
+
 module.exports.getIndex = (req, res, next) => {
-  console.log(req.csrfToken());
+  const page = +req.query.page || 1;
+  let totalItems;
   Product.find()
+    .countDocuments()
+    .then((numberOfProducts) => {
+      totalItems = numberOfProducts;
+      return Product.find()
+        .skip((page - 1) * ITEMS_PER_PAGE)
+        .limit(ITEMS_PER_PAGE);
+    })
     .then((products) => {
       res.render('shop/index', {
         prods: products,
         pageTitle: 'Shop',
         path: '/',
+        currentPage: page,
+        hasNextPage: ITEMS_PER_PAGE * page < totalItems,
+        hasPrevioud: page > 1,
+        nextPage: page + 1,
+        previousPage: page - 1,
+        lastPage: Math.ceil(totalItems / ITEMS_PER_PAGE),
       });
     })
     .catch((err) => {
@@ -21,14 +37,36 @@ module.exports.getIndex = (req, res, next) => {
     });
 };
 
-module.exports.getProducts = (req, res, _next) => {
-  Product.find().then((products) => {
-    res.render('shop/product-list', {
-      prods: products,
-      pageTitle: 'All Products',
-      path: '/products',
+module.exports.getProducts = (req, res, next) => {
+  const page = +req.query.page || 1;
+  let totalItems;
+  Product.find()
+    .countDocuments()
+
+    .then((numberOfItems) => {
+      totalItems = numberOfItems;
+      return Product.find()
+        .skip((page - 1) * ITEMS_PER_PAGE)
+        .limit(ITEMS_PER_PAGE);
+    })
+    .then((products) => {
+      res.render('shop/product-list', {
+        prods: products,
+        pageTitle: 'All Products',
+        path: '/products',
+        currentPage: page,
+        hasNextPage: ITEMS_PER_PAGE * page < totalItems,
+        hasPrevioud: page > 1,
+        nextPage: page + 1,
+        previousPage: page - 1,
+        lastPage: Math.ceil(totalItems / ITEMS_PER_PAGE),
+      });
+    })
+    .catch((err) => {
+      const error = new Error(err);
+      error.httpStatusCode = 500;
+      next(error);
     });
-  });
 };
 
 module.exports.getProduct = (req, res, next) => {
